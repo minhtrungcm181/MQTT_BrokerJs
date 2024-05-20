@@ -30,7 +30,7 @@ function formatTimestamp(timestamp) {
   var vol, cur, pow, trueP, kwh;
 
 function insertDB(vol, cur, pow, trueP, kwh) {
-  if (vol != 0 && kwh != 0){
+  if (vol > 0 && vol < 235 && kwh > 0){
   const timestamp = new Date(); 
   const formattedTimestamp = formatTimestamp(timestamp);
   const query = `INSERT INTO power (timestamp, voltage, current, power, true_power, kwh)

@@ -1,4 +1,5 @@
 let mosca = require('mosca');
+const pool = require('./dbconnector')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const CSV_FILE = "mqtt_data.csv";
 let message;
@@ -27,7 +28,28 @@ function parseAndWriteToCsv(message) {
             console.error('Error writing data to CSV:', err);
         });
 }
-
+function formatTimestamp(timestamp) {
+    const day = String(timestamp.getDate()).padStart(2, '0');
+    const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+    const year = timestamp.getFullYear();
+    const hour = String(timestamp.getHours()).padStart(2, '0');
+    const minute = String(timestamp.getMinutes()).padStart(2, '0');
+    const second = String(timestamp.getSeconds()).padStart(2, '0');
+  
+    return `${year}/${month}/${day} ${hour}:${minute}:${second}`;
+  }
+  var vol, cur, pow, trueP, kwh;
+  function insertDB(vol, cur, pow, trueP, kwh) {
+    if (vol > 0 && vol < 235 && kwh > 0){
+    const timestamp = new Date(); 
+    const formattedTimestamp = formatTimestamp(timestamp);
+    const query = `INSERT INTO power (timestamp, voltage, current, power, true_power, kwh)
+            VALUES ($1, $2, $3, $4, $5, $6)`;
+  
+          pool.query(query, [formattedTimestamp, vol, cur, pow, trueP, kwh]); 
+          console.log('Data inserted successfully');
+          console.log('------------------------');  }
+  } 
 var settings = {
     port: 1883,
     stats: false,
@@ -72,6 +94,19 @@ broker.on('published', (packet) => {
 // }
 
     message = packet.payload.toString();
+    if (topic == "topic5"){
+        dataString = message.replace(/"/g, '');
+        let values = dataString.split(',');
+   
+        vol = parseFloat(values[0]);
+        cur = parseFloat(values[1]);
+        pow = parseFloat(values[2]);
+        trueP = parseFloat(values[3]);
+        kwh = parseFloat(values[4]);
+      }
    
     console.log(topic + ' ' + message);
 })
+setInterval(() => {
+    insertDB(vol, cur, pow, trueP, kwh);
+  }, 90000);
